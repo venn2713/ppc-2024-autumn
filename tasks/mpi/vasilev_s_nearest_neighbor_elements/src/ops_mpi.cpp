@@ -63,6 +63,7 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI:
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::pre_processing() {
   internal_order_test();
   int total_size = 0;
+
   if (world.rank() == 0) {
     input_.resize(taskData->inputs_count[0]);
     auto* tmp_ptr = reinterpret_cast<int*>(taskData->inputs[0]);
@@ -71,44 +72,44 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::p
     }
     total_size = static_cast<int>(input_.size());
   }
+
   boost::mpi::broadcast(world, total_size, 0);
 
   int base_size = total_size / world.size();
   int remainder = total_size % world.size();
-  int local_size = base_size + (world.rank() < remainder ? 1 : 0);
-  int start_idx = world.rank() * base_size + std::min(world.rank(), remainder);
+  std::vector<int> send_counts(world.size(), base_size);
+  std::vector<int> displacements(world.size(), 0);
+
+  for (int i = 0; i < remainder; ++i) {
+    send_counts[i] += 1;
+  }
+  std::partial_sum(send_counts.begin(), send_counts.end() - 1, displacements.begin() + 1);
+
+  int local_size = send_counts[world.rank()];
+  int start_idx = displacements[world.rank()];
   int end_idx = start_idx + local_size;
 
   if (start_idx > 0) {
     start_idx -= 1;
+    local_size += 1;
   }
   if (end_idx < total_size) {
-    end_idx += 1;
+    local_size += 1;
   }
-  int adjusted_local_size = end_idx - start_idx;
-  local_input_.resize(adjusted_local_size);
+  local_input_.resize(local_size);
 
   if (world.rank() == 0) {
-    for (int proc = 1; proc < world.size(); ++proc) {
-      int proc_base_size = total_size / world.size();
-      int proc_remainder = total_size % world.size();
-      int proc_local_size = proc_base_size + (proc < proc_remainder ? 1 : 0);
-      int proc_start_idx = proc * proc_base_size + std::min(proc, proc_remainder);
-      int proc_end_idx = proc_start_idx + proc_local_size;
-
-      if (proc_start_idx > 0) {
-        proc_start_idx -= 1;
-      }
-      if (proc_end_idx < total_size) {
-        proc_end_idx += 1;
-      }
-      int proc_adjusted_size = proc_end_idx - proc_start_idx;
-
-      world.send(proc, 0, &input_[proc_start_idx], proc_adjusted_size);
+    std::vector<int> extended_input;
+    for (int i = 0; i < world.size(); ++i) {
+      int ext_start = displacements[i];
+      int ext_end = displacements[i] + send_counts[i];
+      if (ext_start > 0) ext_start -= 1;
+      if (ext_end < total_size) ext_end += 1;
+      extended_input.insert(extended_input.end(), input_.begin() + ext_start, input_.begin() + ext_end);
     }
-    std::copy(input_.begin() + start_idx, input_.begin() + end_idx, local_input_.begin());
+    boost::mpi::scatterv(world, extended_input, send_counts, displacements, local_input_.data(), local_size, 0);
   } else {
-    world.recv(0, 0, (local_input_).data(), adjusted_local_size);
+    boost::mpi::scatterv(world, input_, send_counts, displacements, local_input_.data(), local_size, 0);
   }
 
   local_offset_ = start_idx;

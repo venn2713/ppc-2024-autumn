@@ -11,7 +11,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_small_vector) {
   std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
-  // Create TaskData
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
   if (world.rank() == 0) {
@@ -31,7 +30,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_small_vector) {
   task_parallel.post_processing();
 
   if (world.rank() == 0) {
-    // Создание ожидаемого результата с использованием последовательной версии
     std::vector<int> expected_result(3, 0);
     std::shared_ptr<ppc::core::TaskData> taskDataSeq = std::make_shared<ppc::core::TaskData>();
     taskDataSeq->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
@@ -45,7 +43,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_small_vector) {
     task_sequential.run();
     task_sequential.post_processing();
 
-    // Проверка результатов
     ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
@@ -57,7 +54,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_random_vector) {
   std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
-  // Create TaskData
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
   if (world.rank() == 0) {
@@ -78,7 +74,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_random_vector) {
   task_parallel.post_processing();
 
   if (world.rank() == 0) {
-    // Создание ожидаемого результата с использованием последовательной версии
     std::vector<int> expected_result(3, 0);
     std::shared_ptr<ppc::core::TaskData> taskDataSeq = std::make_shared<ppc::core::TaskData>();
     taskDataSeq->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
@@ -92,7 +87,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_random_vector) {
     task_sequential.run();
     task_sequential.post_processing();
 
-    // Проверка результатов
     ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
@@ -104,7 +98,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
   std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
-  // Create TaskData
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
   if (world.rank() == 0) {
@@ -124,7 +117,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
   task_parallel.post_processing();
 
   if (world.rank() == 0) {
-    // Создание ожидаемого результата с использованием последовательной версии
     std::vector<int> expected_result(3, 0);
     std::shared_ptr<ppc::core::TaskData> taskDataSeq = std::make_shared<ppc::core::TaskData>();
     taskDataSeq->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
@@ -138,8 +130,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
     task_sequential.run();
     task_sequential.post_processing();
 
-    // Проверка результатов
-    ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff (должно быть 0)
+    ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
   }
@@ -150,11 +141,10 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_single_element_Vector) {
   std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
-  // Create TaskData
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
   if (world.rank() == 0) {
-    global_vec = {42};  // Вектор из одного элемента
+    global_vec = {42};
     taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
     taskDataPar->inputs_count.emplace_back(global_vec.size());
     taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
@@ -163,7 +153,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_single_element_Vector) {
 
   vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
   if (world.rank() == 0) {
-    // Валидация должна вернуть false, так как недостаточно элементов для сравнения
     ASSERT_EQ(task_parallel.validation(), false);
   }
 }
@@ -173,7 +162,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_negative_numbers) {
   std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
-  // Create TaskData
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
   if (world.rank() == 0) {
@@ -193,7 +181,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_negative_numbers) {
   task_parallel.post_processing();
 
   if (world.rank() == 0) {
-    // Создание ожидаемого результата с использованием последовательной версии
     std::vector<int> expected_result(3, 0);
     std::shared_ptr<ppc::core::TaskData> taskDataSeq = std::make_shared<ppc::core::TaskData>();
     taskDataSeq->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
@@ -207,7 +194,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_negative_numbers) {
     task_sequential.run();
     task_sequential.post_processing();
 
-    // Проверка результатов
     ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
