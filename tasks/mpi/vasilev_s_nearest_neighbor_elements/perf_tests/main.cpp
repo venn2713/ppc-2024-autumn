@@ -24,7 +24,8 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_pipeline_run) {
     taskDataPar->outputs_count.emplace_back(global_result.size());
   }
 
-  auto taskParallel = std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
+  auto taskParallel =
+      std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
   if (world.rank() == 0) {
     ASSERT_EQ(taskParallel->validation(), true);
   }
@@ -52,7 +53,8 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_pipeline_run) {
     taskDataSeq->outputs.emplace_back(reinterpret_cast<uint8_t*>(reference_result.data()));
     taskDataSeq->outputs_count.emplace_back(reference_result.size());
 
-    auto taskSequential = std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI>(taskDataSeq);
+    auto taskSequential =
+        std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI>(taskDataSeq);
     ASSERT_EQ(taskSequential->validation(), true);
     taskSequential->pre_processing();
     taskSequential->run();
@@ -80,7 +82,8 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_task_run) {
     taskDataPar->outputs_count.emplace_back(global_result.size());
   }
 
-  auto taskParallel = std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
+  auto taskParallel =
+      std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
   if (world.rank() == 0) {
     ASSERT_EQ(taskParallel->validation(), true);
   }
@@ -108,7 +111,8 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_task_run) {
     taskDataSeq->outputs.emplace_back(reinterpret_cast<uint8_t*>(reference_result.data()));
     taskDataSeq->outputs_count.emplace_back(reference_result.size());
 
-    auto taskSequential = std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI>(taskDataSeq);
+    auto taskSequential =
+        std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI>(taskDataSeq);
     ASSERT_EQ(taskSequential->validation(), true);
     taskSequential->pre_processing();
     taskSequential->run();
