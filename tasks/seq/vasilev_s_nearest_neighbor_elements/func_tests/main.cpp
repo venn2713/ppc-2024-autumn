@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <vector>
 
 #include "seq/vasilev_s_nearest_neighbor_elements/include/ops_seq.hpp"

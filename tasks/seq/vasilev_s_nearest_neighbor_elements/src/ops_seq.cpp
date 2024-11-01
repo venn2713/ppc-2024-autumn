@@ -1,8 +1,8 @@
 #include "seq/vasilev_s_nearest_neighbor_elements/include/ops_seq.hpp"
 
-#include <thread>
 #include <cmath>
 #include <limits>
+#include <thread>
 
 using namespace std::chrono_literals;
 

@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+
 #include <chrono>
 #include <vector>
 
@@ -21,7 +22,8 @@ TEST(vasilev_s_nearest_neighbor_elements_seq, test_pipeline_run) {
   taskDataSeq->outputs.emplace_back(reinterpret_cast<uint8_t*>(output_result.data()));
   taskDataSeq->outputs_count.emplace_back(output_result.size());
 
-  auto taskSequential = std::make_shared<vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential>(taskDataSeq);
+  auto taskSequential =
+      std::make_shared<vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential>(taskDataSeq);
   ASSERT_EQ(taskSequential->validation(), true);
   taskSequential->pre_processing();
   taskSequential->run();
@@ -67,7 +69,8 @@ TEST(vasilev_s_nearest_neighbor_elements_seq, test_task_run) {
   taskDataSeq->outputs.emplace_back(reinterpret_cast<uint8_t*>(output_result.data()));
   taskDataSeq->outputs_count.emplace_back(output_result.size());
 
-  auto taskSequential = std::make_shared<vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential>(taskDataSeq);
+  auto taskSequential =
+      std::make_shared<vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential>(taskDataSeq);
   ASSERT_EQ(taskSequential->validation(), true);
   taskSequential->pre_processing();
   taskSequential->run();
