@@ -21,9 +21,9 @@ struct LocalResult {
   // Функция сериализации для Boost.Serialization
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
-    ar& min_diff;
-    ar& index1;
-    ar& index2;
+    ar & min_diff;
+    ar & index1;
+    ar & index2;
   }
 };
 
