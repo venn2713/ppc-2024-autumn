@@ -61,12 +61,10 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI:
   return true;
 }
 
-//------------------------------------------------------------------------------------------
-
 std::pair<std::vector<int>, std::vector<int>> vasilev_s_nearest_neighbor_elements_mpi::partitionArray(
     int amount, int num_partitions) {
-  std::vector<int> displs(num_partitions);  // смещения
-  std::vector<int> sizes(num_partitions);   // размеры каждого подмассива
+  std::vector<int> displs(num_partitions);
+  std::vector<int> sizes(num_partitions);
   int total_elements = amount + num_partitions - 1;
   int base_size = total_elements / num_partitions;
   int extra_elements = total_elements % num_partitions;
@@ -149,7 +147,6 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::r
       int current_index1 = static_cast<int>(rank_offset_ + i);
       int current_index2 = static_cast<int>(rank_offset_ + i + 1);
 
-      // Обновляем, если нашли меньшее значение diff или при равенстве diff — меньший индекс
       if (diff < local_result.min_diff || (diff == local_result.min_diff && current_index1 < local_result.index1)) {
         local_result.min_diff = diff;
         local_result.index1 = current_index1;
@@ -158,7 +155,6 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::r
     }
   }
 
-  // Собираем минимальные значения с помощью all_reduce
   LocalResult global_result;
   boost::mpi::reduce(world, local_result, global_result, boost::mpi::minimum<LocalResult>(), 0);
 

@@ -176,8 +176,8 @@ TEST(LocalResultTest, OperatorLessThan) {
   vasilev_s_nearest_neighbor_elements_mpi::LocalResult b{10, 5, 6};
   vasilev_s_nearest_neighbor_elements_mpi::LocalResult c{5, 9, 10};
 
-  EXPECT_TRUE(a < b);   // a.min_diff < b.min_diff, должно быть true
-  EXPECT_FALSE(b < a);  // b.min_diff > a.min_diff, должно быть false
-  EXPECT_FALSE(a < c);  // a.min_diff == c.min_diff, но a.index1 < c.index1, должно быть true
-  EXPECT_TRUE(c < a);   // c.min_diff == a.min_diff, но c.index1 > a.index1, должно быть false
+  EXPECT_TRUE(a < b);
+  EXPECT_FALSE(b < a);
+  EXPECT_FALSE(a < c);
+  EXPECT_TRUE(c < a);
 }

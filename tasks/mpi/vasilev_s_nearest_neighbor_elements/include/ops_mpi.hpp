@@ -18,16 +18,13 @@ struct LocalResult {
   int index1;
   int index2;
 
-  // Оператор сравнения для all_reduce
   bool operator<(const LocalResult& other) const {
     if (min_diff != other.min_diff) {
       return min_diff < other.min_diff;
     }
-    // Если min_diff равны, приоритет отдаем меньшему index1
     return index1 < other.index1;
   }
 
-  // Функция сериализации для Boost.Serialization
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
     ar & min_diff;
