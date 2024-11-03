@@ -155,7 +155,7 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::r
     }
   }
 
-  LocalResult global_result;
+  LocalResult global_result{std::numeric_limits<int>::max(), -1, -1};
   boost::mpi::reduce(world, local_result, global_result, boost::mpi::minimum<LocalResult>(), 0);
 
   if (world.rank() == 0) {
