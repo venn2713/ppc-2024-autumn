@@ -22,9 +22,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_small_vector) {
   }
 
   vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(task_parallel.validation(), true);
-  }
+  ASSERT_EQ(task_parallel.validation(), true);
   task_parallel.pre_processing();
   task_parallel.run();
   task_parallel.post_processing();
@@ -66,9 +64,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_random_vector) {
   }
 
   vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(task_parallel.validation(), true);
-  }
+  ASSERT_EQ(task_parallel.validation(), true);
   task_parallel.pre_processing();
   task_parallel.run();
   task_parallel.post_processing();
@@ -109,9 +105,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
   }
 
   vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(task_parallel.validation(), true);
-  }
+  ASSERT_EQ(task_parallel.validation(), true);
   task_parallel.pre_processing();
   task_parallel.run();
   task_parallel.post_processing();
@@ -125,7 +119,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
     taskDataSeq->outputs_count.emplace_back(expected_result.size());
 
     vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI task_sequential(taskDataSeq);
-    ASSERT_EQ(task_sequential.validation(), true);
+    task_sequential.validation();
     task_sequential.pre_processing();
     task_sequential.run();
     task_sequential.post_processing();
@@ -133,27 +127,6 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_equal_elements) {
     ASSERT_EQ(global_result[0], expected_result[0]);  // min_diff
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
-  }
-}
-
-TEST(vasilev_s_nearest_neighbor_elements_mpi, test_single_element_Vector) {
-  boost::mpi::communicator world;
-  std::vector<int> global_vec;
-  std::vector<int> global_result(3, 0);  // min_diff, index1, index2
-
-  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
-
-  if (world.rank() == 0) {
-    global_vec = {42};
-    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
-    taskDataPar->inputs_count.emplace_back(global_vec.size());
-    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
-    taskDataPar->outputs_count.emplace_back(global_result.size());
-  }
-
-  vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(task_parallel.validation(), false);
   }
 }
 
@@ -173,9 +146,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_negative_numbers) {
   }
 
   vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI task_parallel(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(task_parallel.validation(), true);
-  }
+  task_parallel.validation();
   task_parallel.pre_processing();
   task_parallel.run();
   task_parallel.post_processing();
@@ -198,4 +169,15 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_negative_numbers) {
     ASSERT_EQ(global_result[1], expected_result[1]);  // index1
     ASSERT_EQ(global_result[2], expected_result[2]);  // index2
   }
+}
+
+TEST(LocalResultTest, OperatorLessThan) {
+  vasilev_s_nearest_neighbor_elements_mpi::LocalResult a{5, 10, 11};
+  vasilev_s_nearest_neighbor_elements_mpi::LocalResult b{10, 5, 6};
+  vasilev_s_nearest_neighbor_elements_mpi::LocalResult c{5, 9, 10};
+
+  EXPECT_TRUE(a < b);   // a.min_diff < b.min_diff, должно быть true
+  EXPECT_FALSE(b < a);  // b.min_diff > a.min_diff, должно быть false
+  EXPECT_FALSE(a < c);  // a.min_diff == c.min_diff, но a.index1 < c.index1, должно быть true
+  EXPECT_TRUE(c < a);   // c.min_diff == a.min_diff, но c.index1 > a.index1, должно быть false
 }

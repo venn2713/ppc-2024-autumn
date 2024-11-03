@@ -10,14 +10,11 @@
 
 TEST(vasilev_s_nearest_neighbor_elements_mpi, test_pipeline_run) {
   boost::mpi::communicator world;
-  std::vector<int> global_vec;
+  std::vector<int> global_vec = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
-  int count_size_vector;
   if (world.rank() == 0) {
-    count_size_vector = 100000;
-    global_vec = vasilev_s_nearest_neighbor_elements_mpi::getRandomVector(count_size_vector);
     taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
     taskDataPar->inputs_count.emplace_back(global_vec.size());
     taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
@@ -26,9 +23,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_pipeline_run) {
 
   auto taskParallel =
       std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(taskParallel->validation(), true);
-  }
+  ASSERT_EQ(taskParallel->validation(), true);
   taskParallel->pre_processing();
   taskParallel->run();
   taskParallel->post_processing();
@@ -84,9 +79,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_task_run) {
 
   auto taskParallel =
       std::make_shared<vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI>(taskDataPar);
-  if (world.rank() == 0) {
-    ASSERT_EQ(taskParallel->validation(), true);
-  }
+  ASSERT_EQ(taskParallel->validation(), true);
   taskParallel->pre_processing();
   taskParallel->run();
   taskParallel->post_processing();

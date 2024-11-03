@@ -18,6 +18,15 @@ struct LocalResult {
   int index1;
   int index2;
 
+  // Оператор сравнения для all_reduce
+  bool operator<(const LocalResult& other) const {
+    if (min_diff != other.min_diff) {
+      return min_diff < other.min_diff;
+    }
+    // Если min_diff равны, приоритет отдаем меньшему index1
+    return index1 < other.index1;
+  }
+
   // Функция сериализации для Boost.Serialization
   template <class Archive>
   void serialize(Archive& ar, const unsigned int version) {
@@ -28,6 +37,7 @@ struct LocalResult {
 };
 
 std::vector<int> getRandomVector(int sz);
+std::pair<std::vector<int>, std::vector<int>> partitionArray(int amount, int num_partitions);
 
 class FindClosestNeighborsSequentialMPI : public ppc::core::Task {
  public:
@@ -56,11 +66,12 @@ class FindClosestNeighborsParallelMPI : public ppc::core::Task {
 
  private:
   std::vector<int> input_;
-  std::vector<int> local_input_;
-  int min_diff_{};
-  int index1_{};
-  int index2_{};
-  int local_offset_{};
+  int rank_offset_;
+  int min_diff_ = std::numeric_limits<int>::max();
+  int index1_ = -1;
+  int index2_ = -1;
+  std::vector<int> distribution;
+  std::vector<int> displacement;
   boost::mpi::communicator world;
 };
 

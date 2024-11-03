@@ -1,8 +1,12 @@
 #include "mpi/vasilev_s_nearest_neighbor_elements/include/ops_mpi.hpp"
 
 #include <algorithm>
+#include <boost/serialization/array.hpp>
+#include <boost/serialization/vector.hpp>
 #include <functional>
+#include <iostream>
 #include <limits>
+#include <numeric>
 #include <random>
 #include <vector>
 
@@ -32,10 +36,7 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI:
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI::validation() {
   internal_order_test();
-  if (taskData->inputs_count.empty() || taskData->inputs_count[0] < 2) {
-    return false;
-  }
-  return taskData->outputs_count[0] == 3;
+  return !taskData->inputs_count.empty() && taskData->inputs_count[0] >= 2 && taskData->outputs_count[0] == 3;
 }
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI::run() {
@@ -60,120 +61,123 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI:
   return true;
 }
 
-bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::pre_processing() {
-  internal_order_test();
-  int total_size = 0;
+//------------------------------------------------------------------------------------------
 
-  if (world.rank() == 0) {
-    input_.resize(taskData->inputs_count[0]);
-    auto* tmp_ptr = reinterpret_cast<int*>(taskData->inputs[0]);
-    for (unsigned i = 0; i < taskData->inputs_count[0]; i++) {
-      input_[i] = tmp_ptr[i];
+std::pair<std::vector<int>, std::vector<int>> vasilev_s_nearest_neighbor_elements_mpi::partitionArray(
+    int amount, int num_partitions) {
+  std::vector<int> displs(num_partitions);  // смещения
+  std::vector<int> sizes(num_partitions);   // размеры каждого подмассива
+  int total_elements = amount + num_partitions - 1;
+  int base_size = total_elements / num_partitions;
+  int extra_elements = total_elements % num_partitions;
+
+  if (amount <= num_partitions) {
+    for (int i = 0; i < num_partitions; i++) {
+      if (i < amount - 1) {
+        sizes[i] = 2;
+        displs[i] = i;
+      } else {
+        sizes[i] = 0;
+        displs[i] = -1;
+      }
     }
-    total_size = static_cast<int>(input_.size());
-  }
-
-  boost::mpi::broadcast(world, total_size, 0);
-
-  int base_size = total_size / world.size();
-  int remainder = total_size % world.size();
-  std::vector<int> send_counts(world.size(), base_size);
-  std::vector<int> displacements(world.size(), 0);
-
-  for (int i = 0; i < remainder; ++i) {
-    send_counts[i] += 1;
-  }
-  std::partial_sum(send_counts.begin(), send_counts.end() - 1, displacements.begin() + 1);
-
-  int local_size = send_counts[world.rank()];
-  int start_idx = displacements[world.rank()];
-  int end_idx = start_idx + local_size;
-
-  if (start_idx > 0) {
-    start_idx -= 1;
-    local_size += 1;
-  }
-  if (end_idx < total_size) {
-    local_size += 1;
-  }
-  local_input_.resize(local_size);
-
-  if (world.rank() == 0) {
-    std::vector<int> extended_input;
-    for (int i = 0; i < world.size(); ++i) {
-      int ext_start = displacements[i];
-      int ext_end = displacements[i] + send_counts[i];
-      if (ext_start > 0) ext_start -= 1;
-      if (ext_end < total_size) ext_end += 1;
-      extended_input.insert(extended_input.end(), input_.begin() + ext_start, input_.begin() + ext_end);
-    }
-    boost::mpi::scatterv(world, extended_input, send_counts, displacements, local_input_.data(), local_size, 0);
   } else {
-    boost::mpi::scatterv(world, input_, send_counts, displacements, local_input_.data(), local_size, 0);
+    for (int i = 0; i < num_partitions; i++) {
+      if (extra_elements > 0) {
+        sizes[i] = base_size + 1;
+        extra_elements--;
+      } else {
+        sizes[i] = base_size;
+      }
+
+      if (i == 0) {
+        displs[i] = 0;
+      } else {
+        displs[i] = displs[i - 1] + sizes[i - 1] - 1;
+      }
+    }
   }
-
-  local_offset_ = start_idx;
-
-  min_diff_ = std::numeric_limits<int>::max();
-  index1_ = -1;
-  index2_ = -1;
-  return true;
+  return {displs, sizes};
 }
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::validation() {
   internal_order_test();
+  return world.rank() != 0 || taskData->inputs_count[0] > 1;
+}
+
+bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::pre_processing() {
+  internal_order_test();
+
+  unsigned int amount = 0;
   if (world.rank() == 0) {
-    if (taskData->inputs_count.empty() || taskData->inputs_count[0] < 2) {
-      return false;
-    }
-    return taskData->outputs_count[0] == 3;
+    amount = taskData->inputs_count[0];
   }
+
+  boost::mpi::broadcast(world, amount, 0);
+
+  if (world.rank() == 0) {
+    std::tie(displacement, distribution) =
+        vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, world.size());
+  }
+
+  boost::mpi::broadcast(world, displacement, 0);
+  boost::mpi::broadcast(world, distribution, 0);
+
+  rank_offset_ = displacement[world.rank()];
+
+  input_.resize(distribution[world.rank()]);
+  if (world.rank() == 0) {
+    const auto* in_p = reinterpret_cast<int*>(taskData->inputs[0]);
+    boost::mpi::scatterv(world, in_p, distribution, displacement, input_.data(), distribution[0], 0);
+  } else {
+    boost::mpi::scatterv(world, input_.data(), distribution[world.rank()], 0);
+  }
+
   return true;
 }
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::run() {
   internal_order_test();
-  for (size_t i = 0; i < local_input_.size() - 1; ++i) {
-    int diff = std::abs(local_input_[i + 1] - local_input_[i]);
-    if (diff < min_diff_) {
-      min_diff_ = diff;
-      index1_ = static_cast<int>(i) + local_offset_;
-      index2_ = static_cast<int>(i + 1) + local_offset_;
-    }
-  }
 
-  LocalResult local_result = {min_diff_, index1_, index2_};
+  LocalResult local_result{std::numeric_limits<int>::max(), -1, -1};
+  const std::size_t size = input_.size();
 
-  std::vector<LocalResult> all_results;
-  if (world.rank() == 0) {
-    all_results.resize(world.size());
-  }
+  if (size > 0) {
+    for (size_t i = 0; i < input_.size() - 1; ++i) {
+      int diff = std::abs(input_[i + 1] - input_[i]);
 
-  boost::mpi::gather(world, local_result, all_results, 0);
+      int current_index1 = static_cast<int>(rank_offset_ + i);
+      int current_index2 = static_cast<int>(rank_offset_ + i + 1);
 
-  if (world.rank() == 0) {
-    min_diff_ = all_results[0].min_diff;
-    index1_ = all_results[0].index1;
-    index2_ = all_results[0].index2;
-    for (size_t i = 1; i < all_results.size(); ++i) {
-      if (all_results[i].min_diff < min_diff_) {
-        min_diff_ = all_results[i].min_diff;
-        index1_ = all_results[i].index1;
-        index2_ = all_results[i].index2;
+      // Обновляем, если нашли меньшее значение diff или при равенстве diff — меньший индекс
+      if (diff < local_result.min_diff || (diff == local_result.min_diff && current_index1 < local_result.index1)) {
+        local_result.min_diff = diff;
+        local_result.index1 = current_index1;
+        local_result.index2 = current_index2;
       }
     }
   }
 
+  // Собираем минимальные значения с помощью all_reduce
+  LocalResult global_result;
+  boost::mpi::reduce(world, local_result, global_result, boost::mpi::minimum<LocalResult>(), 0);
+
+  if (world.rank() == 0) {
+    min_diff_ = global_result.min_diff;
+    index1_ = global_result.index1;
+    index2_ = global_result.index2;
+  }
   return true;
 }
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::post_processing() {
   internal_order_test();
+
   if (world.rank() == 0) {
-    int* output_ptr = reinterpret_cast<int*>(taskData->outputs[0]);
-    output_ptr[0] = min_diff_;
-    output_ptr[1] = index1_;
-    output_ptr[2] = index2_;
+    reinterpret_cast<int*>(taskData->outputs[0])[0] = min_diff_;
+    reinterpret_cast<int*>(taskData->outputs[0])[1] = index1_;
+    reinterpret_cast<int*>(taskData->outputs[0])[2] = index2_;
   }
+
   return true;
 }

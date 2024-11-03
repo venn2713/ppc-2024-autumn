@@ -21,10 +21,7 @@ bool vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential::pr
 
 bool vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential::validation() {
   internal_order_test();
-  if (taskData->inputs_count.empty() || taskData->inputs_count[0] < 2) {
-    return false;
-  }
-  return taskData->outputs_count[0] == 3;
+  return !taskData->inputs_count.empty() && taskData->inputs_count[0] >= 2 && taskData->outputs_count[0] == 3;
 }
 
 bool vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential::run() {
