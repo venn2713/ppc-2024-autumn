@@ -3,18 +3,33 @@
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/environment.hpp>
 #include <boost/mpi/timer.hpp>
+#include <random>
 #include <vector>
 
 #include "core/perf/include/perf.hpp"
 #include "mpi/vasilev_s_nearest_neighbor_elements/include/ops_mpi.hpp"
 
+std::vector<int> getRandomVector(int sz) {
+  std::random_device dev;
+  std::mt19937 gen(dev());
+  std::uniform_int_distribution<> dist(0, 1000);
+  std::vector<int> vec(sz);
+  for (int i = 0; i < sz; i++) {
+    vec[i] = dist(gen);
+  }
+  return vec;
+}
+
 TEST(vasilev_s_nearest_neighbor_elements_mpi, test_pipeline_run) {
   boost::mpi::communicator world;
-  std::vector<int> global_vec = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  std::vector<int> global_vec;
   std::vector<int> global_result(3, 0);  // min_diff, index1, index2
 
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+  int count_size_vector;
   if (world.rank() == 0) {
+    count_size_vector = 1000000;
+    global_vec = getRandomVector(count_size_vector);
     taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
     taskDataPar->inputs_count.emplace_back(global_vec.size());
     taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
@@ -70,7 +85,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_task_run) {
   int count_size_vector;
   if (world.rank() == 0) {
     count_size_vector = 1000000;
-    global_vec = vasilev_s_nearest_neighbor_elements_mpi::getRandomVector(count_size_vector);
+    global_vec = getRandomVector(count_size_vector);
     taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
     taskDataPar->inputs_count.emplace_back(global_vec.size());
     taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));

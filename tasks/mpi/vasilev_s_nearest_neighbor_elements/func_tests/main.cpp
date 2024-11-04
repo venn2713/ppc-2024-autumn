@@ -2,9 +2,21 @@
 
 #include <boost/mpi/communicator.hpp>
 #include <boost/mpi/environment.hpp>
+#include <random>
 #include <vector>
 
 #include "mpi/vasilev_s_nearest_neighbor_elements/include/ops_mpi.hpp"
+
+std::vector<int> getRandomVector(int sz) {
+  std::random_device dev;
+  std::mt19937 gen(dev());
+  std::uniform_int_distribution<> dist(0, 1000);
+  std::vector<int> vec(sz);
+  for (int i = 0; i < sz; i++) {
+    vec[i] = dist(gen);
+  }
+  return vec;
+}
 
 TEST(vasilev_s_nearest_neighbor_elements_mpi, test_small_vector) {
   boost::mpi::communicator world;
@@ -56,7 +68,7 @@ TEST(vasilev_s_nearest_neighbor_elements_mpi, test_random_vector) {
 
   if (world.rank() == 0) {
     const int count_size_vector = 1000;
-    global_vec = vasilev_s_nearest_neighbor_elements_mpi::getRandomVector(count_size_vector);
+    global_vec = getRandomVector(count_size_vector);
     taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vec.data()));
     taskDataPar->inputs_count.emplace_back(global_vec.size());
     taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
@@ -180,4 +192,64 @@ TEST(LocalResultTest, OperatorLessThan) {
   EXPECT_FALSE(b < a);
   EXPECT_FALSE(a < c);
   EXPECT_TRUE(c < a);
+}
+
+TEST(PartitionArrayTest, TestEqualPartitions) {
+  int amount = 10;
+  int num_partitions = 5;
+  auto result = vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, num_partitions);
+
+  std::vector<int> expected_sizes = {3, 3, 3, 3, 2};   // равное распределение
+  std::vector<int> expected_displs = {0, 2, 4, 6, 8};  // смещения
+
+  ASSERT_EQ(result.first, expected_displs);
+  ASSERT_EQ(result.second, expected_sizes);
+}
+
+TEST(PartitionArrayTest, TestUnequalPartitions) {
+  int amount = 10;
+  int num_partitions = 3;
+  auto result = vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, num_partitions);
+
+  std::vector<int> expected_sizes = {4, 4, 4};   // неравномерное распределение
+  std::vector<int> expected_displs = {0, 3, 6};  // смещения
+
+  ASSERT_EQ(result.first, expected_displs);
+  ASSERT_EQ(result.second, expected_sizes);
+}
+
+TEST(PartitionArrayTest, TestMorePartitionsThanElements) {
+  int amount = 3;
+  int num_partitions = 5;
+  auto result = vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, num_partitions);
+
+  std::vector<int> expected_sizes = {2, 2, 0, 0, 0};  // части, превышающие количество элементов
+  std::vector<int> expected_displs = {0, 1, -1, -1, -1};  // смещения с "пустыми" частями
+
+  ASSERT_EQ(result.first, expected_displs);
+  ASSERT_EQ(result.second, expected_sizes);
+}
+
+TEST(PartitionArrayTest, TestSinglePartition) {
+  int amount = 10;
+  int num_partitions = 1;
+  auto result = vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, num_partitions);
+
+  std::vector<int> expected_sizes = {10};  // одна часть содержит все элементы
+  std::vector<int> expected_displs = {0};  // одно смещение
+
+  ASSERT_EQ(result.first, expected_displs);
+  ASSERT_EQ(result.second, expected_sizes);
+}
+
+TEST(PartitionArrayTest, TestZeroElements) {
+  int amount = 0;
+  int num_partitions = 5;
+  auto result = vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, num_partitions);
+
+  std::vector<int> expected_sizes = {0, 0, 0, 0, 0};        // все части пустые
+  std::vector<int> expected_displs = {-1, -1, -1, -1, -1};  // все смещения отсутствуют
+
+  ASSERT_EQ(result.first, expected_displs);
+  ASSERT_EQ(result.second, expected_sizes);
 }

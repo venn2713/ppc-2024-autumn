@@ -7,27 +7,14 @@
 #include <iostream>
 #include <limits>
 #include <numeric>
-#include <random>
 #include <vector>
-
-std::vector<int> vasilev_s_nearest_neighbor_elements_mpi::getRandomVector(int sz) {
-  std::random_device dev;
-  std::mt19937 gen(dev());
-  std::uniform_int_distribution<> dist(0, 1000);
-  std::vector<int> vec(sz);
-  for (int i = 0; i < sz; i++) {
-    vec[i] = dist(gen);
-  }
-  return vec;
-}
 
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsSequentialMPI::pre_processing() {
   internal_order_test();
   input_.resize(taskData->inputs_count[0]);
   auto* tmp_ptr = reinterpret_cast<int*>(taskData->inputs[0]);
-  for (unsigned i = 0; i < taskData->inputs_count[0]; i++) {
-    input_[i] = tmp_ptr[i];
-  }
+  std::copy(tmp_ptr, tmp_ptr + taskData->inputs_count[0], input_.begin());
+
   min_diff_ = std::numeric_limits<int>::max();
   index1_ = -1;
   index2_ = -1;
@@ -106,17 +93,29 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::v
 bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::pre_processing() {
   internal_order_test();
 
+  rank_offset_ = 0;
+
+  if (world.rank() == 0) {
+    min_diff_ = std::numeric_limits<int>::max();
+    index1_ = -1;
+    index2_ = -1;
+    std::tie(displacement, distribution) =
+        vasilev_s_nearest_neighbor_elements_mpi::partitionArray(taskData->inputs_count[0], world.size());
+  }
+
+  return true;
+}
+
+bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::run() {
+  internal_order_test();
+
   unsigned int amount = 0;
+
   if (world.rank() == 0) {
     amount = taskData->inputs_count[0];
   }
 
   boost::mpi::broadcast(world, amount, 0);
-
-  if (world.rank() == 0) {
-    std::tie(displacement, distribution) =
-        vasilev_s_nearest_neighbor_elements_mpi::partitionArray(amount, world.size());
-  }
 
   boost::mpi::broadcast(world, displacement, 0);
   boost::mpi::broadcast(world, distribution, 0);
@@ -130,12 +129,6 @@ bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::p
   } else {
     boost::mpi::scatterv(world, input_.data(), distribution[world.rank()], 0);
   }
-
-  return true;
-}
-
-bool vasilev_s_nearest_neighbor_elements_mpi::FindClosestNeighborsParallelMPI::run() {
-  internal_order_test();
 
   LocalResult local_result{std::numeric_limits<int>::max(), -1, -1};
   const std::size_t size = input_.size();
