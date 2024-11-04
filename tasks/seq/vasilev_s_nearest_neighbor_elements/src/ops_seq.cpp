@@ -10,9 +10,8 @@ bool vasilev_s_nearest_neighbor_elements_seq::FindClosestNeighborsSequential::pr
   internal_order_test();
   input_.resize(taskData->inputs_count[0]);
   auto* tmp_ptr = reinterpret_cast<int*>(taskData->inputs[0]);
-  for (unsigned i = 0; i < taskData->inputs_count[0]; i++) {
-    input_[i] = tmp_ptr[i];
-  }
+  std::copy(tmp_ptr, tmp_ptr + taskData->inputs_count[0], input_.begin());
+  
   min_diff_ = std::numeric_limits<int>::max();
   index1_ = -1;
   index2_ = -1;
