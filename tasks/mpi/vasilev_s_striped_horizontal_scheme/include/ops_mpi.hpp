@@ -30,7 +30,6 @@ class StripedHorizontalSchemeParallelMPI : public ppc::core::Task {
   std::vector<int> result_vector_;
   int num_rows_;
   int num_cols_;
-  int rank_offset_;
   std::vector<int> distribution;
   std::vector<int> displacement;
   boost::mpi::communicator world;

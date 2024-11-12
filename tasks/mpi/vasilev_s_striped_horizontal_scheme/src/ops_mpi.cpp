@@ -60,9 +60,9 @@ bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI
 
     int result_size = taskData->outputs_count[0];
     result_vector_.resize(result_size, 0);
-  }
 
-  calculate_distribution(num_rows_, num_cols_, world.size(), distribution, displacement);
+    calculate_distribution(num_rows_, num_cols_, world.size(), distribution, displacement);
+  }
 
   return true;
 }
