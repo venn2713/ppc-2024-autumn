@@ -143,8 +143,8 @@ bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeSequentialMPI::validation() {
   internal_order_test();
-  bool valid_matrix = taskData->inputs[0] != nullptr && taskData->inputs_count[0] > 0;
-  bool valid_vector = taskData->inputs[1] != nullptr && taskData->inputs_count[1] > 0;
+  bool valid_matrix = taskData->inputs_count[0] > 0;
+  bool valid_vector = taskData->inputs_count[1] > 0;
   bool valid_dimensions = valid_matrix && valid_vector && taskData->inputs_count[0] % taskData->inputs_count[1] == 0;
   bool valid_result =
       valid_dimensions && taskData->outputs_count[0] == taskData->inputs_count[0] / taskData->inputs_count[1];
