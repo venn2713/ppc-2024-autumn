@@ -97,6 +97,146 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, calculate_distribution_num_proc_le
   }
 }
 
+TEST(vasilev_s_striped_horizontal_scheme_mpi, empty_matrix_test) {
+  boost::mpi::communicator world;
+
+  std::vector<int> global_matrix;
+  std::vector<int> global_vector;
+  std::vector<int> global_result;
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  int num_rows = 0;
+
+  if (world.rank() == 0) {
+    global_vector = {1, 1, 1};
+
+    global_result.resize(num_rows, 0);
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_matrix.data()));
+    taskDataPar->inputs_count.emplace_back(global_matrix.size());
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vector.data()));
+    taskDataPar->inputs_count.emplace_back(global_vector.size());
+
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  auto taskParallel =
+      std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
+  if (world.rank() == 0) {
+    EXPECT_FALSE(taskParallel->validation());
+  } else {
+    EXPECT_TRUE(taskParallel->validation());
+  }
+}
+
+TEST(vasilev_s_striped_horizontal_scheme_mpi, empty_vector_test) {
+  boost::mpi::communicator world;
+
+  std::vector<int> global_matrix;
+  std::vector<int> global_vector;
+  std::vector<int> global_result;
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  int num_rows = 2;
+
+  if (world.rank() == 0) {
+    global_matrix = {1, 1, 1, 1};
+
+    global_result.resize(num_rows, 0);
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_matrix.data()));
+    taskDataPar->inputs_count.emplace_back(global_matrix.size());
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vector.data()));
+    taskDataPar->inputs_count.emplace_back(global_vector.size());
+
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  auto taskParallel =
+      std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
+  if (world.rank() == 0) {
+    EXPECT_FALSE(taskParallel->validation());
+  } else {
+    EXPECT_TRUE(taskParallel->validation());
+  }
+}
+
+TEST(vasilev_s_striped_horizontal_scheme_mpi, invalid_matrix_vector_size_test) {
+  boost::mpi::communicator world;
+
+  std::vector<int> global_matrix;
+  std::vector<int> global_vector;
+  std::vector<int> global_result;
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  int num_rows = 3;
+
+  if (world.rank() == 0) {
+    global_matrix = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    global_vector = {1, 0};
+
+    global_result.resize(num_rows, 0);
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_matrix.data()));
+    taskDataPar->inputs_count.emplace_back(global_matrix.size());
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vector.data()));
+    taskDataPar->inputs_count.emplace_back(global_vector.size());
+
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  auto taskParallel =
+      std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
+  if (world.rank() == 0) {
+    EXPECT_FALSE(taskParallel->validation());
+  } else {
+    EXPECT_TRUE(taskParallel->validation());
+  }
+}
+
+TEST(vasilev_s_striped_horizontal_scheme_mpi, invalid_result_size_test) {
+  boost::mpi::communicator world;
+
+  std::vector<int> global_matrix;
+  std::vector<int> global_vector;
+  std::vector<int> global_result;
+
+  std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
+
+  if (world.rank() == 0) {
+    global_matrix = {1, 2, 3, 4, 5, 6};
+    global_vector = {1, 0};
+
+    global_result.resize(5);
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_matrix.data()));
+    taskDataPar->inputs_count.emplace_back(global_matrix.size());
+
+    taskDataPar->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_vector.data()));
+    taskDataPar->inputs_count.emplace_back(global_vector.size());
+
+    taskDataPar->outputs.emplace_back(reinterpret_cast<uint8_t*>(global_result.data()));
+    taskDataPar->outputs_count.emplace_back(global_result.size());
+  }
+
+  auto taskParallel =
+      std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
+  if (world.rank() == 0) {
+    EXPECT_FALSE(taskParallel->validation());
+  } else {
+    EXPECT_TRUE(taskParallel->validation());
+  }
+}
+
 TEST(vasilev_s_striped_horizontal_scheme_mpi, small_matrix_vector_test) {
   boost::mpi::communicator world;
 

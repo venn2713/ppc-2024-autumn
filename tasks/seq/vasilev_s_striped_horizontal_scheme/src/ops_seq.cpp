@@ -7,7 +7,13 @@
 
 bool vasilev_s_striped_horizontal_scheme_seq::StripedHorizontalSchemeSequential::validation() {
   internal_order_test();
-  return taskData->inputs_count[0] > 1;
+  bool valid_matrix = taskData->inputs[0] != nullptr && taskData->inputs_count[0] > 0;
+  bool valid_vector = taskData->inputs[1] != nullptr && taskData->inputs_count[1] > 0;
+  bool valid_dimensions = valid_matrix && valid_vector && taskData->inputs_count[0] % taskData->inputs_count[1] == 0;
+  bool valid_result =
+      valid_dimensions && taskData->outputs_count[0] == taskData->inputs_count[0] / taskData->inputs_count[1];
+
+  return valid_result;
 }
 
 bool vasilev_s_striped_horizontal_scheme_seq::StripedHorizontalSchemeSequential::pre_processing() {

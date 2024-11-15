@@ -39,7 +39,15 @@ void vasilev_s_striped_horizontal_scheme_mpi::calculate_distribution(int rows, i
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI::validation() {
   internal_order_test();
-  return world.rank() != 0 || taskData->inputs_count[0] > 1;
+  if (world.rank() != 0) return true;
+
+  bool valid_matrix = taskData->inputs[0] != nullptr && taskData->inputs_count[0] > 0;
+  bool valid_vector = taskData->inputs[1] != nullptr && taskData->inputs_count[1] > 0;
+  bool valid_dimensions = valid_matrix && valid_vector && taskData->inputs_count[0] % taskData->inputs_count[1] == 0;
+  bool valid_result =
+      valid_dimensions && taskData->outputs_count[0] == taskData->inputs_count[0] / taskData->inputs_count[1];
+
+  return valid_result;
 }
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI::pre_processing() {
@@ -72,7 +80,6 @@ bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI
 
   boost::mpi::broadcast(world, num_cols_, 0);
   boost::mpi::broadcast(world, input_vector_, 0);
-  boost::mpi::broadcast(world, displacement, 0);
   boost::mpi::broadcast(world, distribution, 0);
 
   int local_num_elements = distribution[world.rank()];
@@ -136,7 +143,13 @@ bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeSequentialMPI::validation() {
   internal_order_test();
-  return taskData->inputs_count[0] > 1;
+  bool valid_matrix = taskData->inputs[0] != nullptr && taskData->inputs_count[0] > 0;
+  bool valid_vector = taskData->inputs[1] != nullptr && taskData->inputs_count[1] > 0;
+  bool valid_dimensions = valid_matrix && valid_vector && taskData->inputs_count[0] % taskData->inputs_count[1] == 0;
+  bool valid_result =
+      valid_dimensions && taskData->outputs_count[0] == taskData->inputs_count[0] / taskData->inputs_count[1];
+
+  return valid_result;
 }
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeSequentialMPI::pre_processing() {
