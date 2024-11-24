@@ -111,7 +111,6 @@ void vasilev_s_gaus3x3_mpi::calculateMatrixSizesDispls(const std::vector<std::ve
 }
 
 inline double vasilev_s_gaus3x3_mpi::applyGaussianKernel(const std::vector<double>& neighborhood) {
-  // Assuming neighborhood.size() == 9
   double result = 0.0;
   result += neighborhood[0] * 0.0625;
   result += neighborhood[1] * 0.125;
@@ -173,39 +172,11 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3ParallelMPI::pre_processing() {
     result_vector.resize((rows - 2) * (cols - 2), 0);
 
     indices = vasilev_s_gaus3x3_mpi::generateIndicesProcessedElements(rows, cols);
-    // std::cout << "indices:\n";
-    // for (auto [f, s] : indices) {
-    //   std::cout << "(" << f << ", " << s << "), ";
-    // }
-    // std::cout << std::endl;
 
     calculateIndicesSizesDispls((rows - 2) * (cols - 2), 1, world.size(), indices_sizes, indices_displs);
 
-    // std::cout << "indices_sizes:\n";
-    // for (int i : indices_sizes) {
-    //   std::cout << i << ", ";
-    // }
-    // std::cout << std::endl;
-    // std::cout << "indices_displs:\n";
-    // for (int i : indices_displs) {
-    //   std::cout << i << ", ";
-    // }
-    // std::cout << std::endl;
-
     auto worker_indicies = makeWorkersIndices(indices, indices_sizes, indices_displs);
     calculateMatrixSizesDispls(worker_indicies, cols, worker_sizes, worker_displs);
-
-    // std::cout << "worker_sizes:\n";
-    // for (int i : worker_sizes) {
-    //   std::cout << i << ", ";
-    // }
-    // std::cout << std::endl;
-
-    // std::cout << "worker_displs:\n";
-    // for (int i : worker_displs) {
-    //   std::cout << i << ", ";
-    // }
-    // std::cout << std::endl;
   }
 
   return true;

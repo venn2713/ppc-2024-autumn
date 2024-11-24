@@ -66,7 +66,6 @@ bool vasilev_s_gaus3x3_seq::Gaus3x3Sequential::post_processing() {
   internal_order_test();
 
   auto* output_data = reinterpret_cast<double*>(taskData->outputs[0]);
-  std::cout << std::endl;
   std::copy(result_vector.begin(), result_vector.end(), output_data);
 
   return true;
