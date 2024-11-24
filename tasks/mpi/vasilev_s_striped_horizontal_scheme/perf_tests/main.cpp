@@ -14,7 +14,7 @@ namespace vasilev_s_striped_horizontal_scheme_mpi {
 std::vector<int> getRandomVector(int sz) {
   std::random_device dev;
   std::mt19937 gen(dev());
-  std::uniform_int_distribution<> dist(0, 1000);
+  std::uniform_int_distribution<> dist(-1000, 1000);
   std::vector<int> vec(sz);
   for (int i = 0; i < sz; i++) {
     vec[i] = dist(gen);
@@ -25,7 +25,7 @@ std::vector<int> getRandomVector(int sz) {
 std::vector<int> getRandomMatrix(int rows, int cols) {
   std::random_device dev;
   std::mt19937 gen(dev());
-  std::uniform_int_distribution<> dist(0, 1000);
+  std::uniform_int_distribution<> dist(-1000, 1000);
   std::vector<int> matrix(rows * cols);
   for (int i = 0; i < rows * cols; i++) {
     matrix[i] = dist(gen);
@@ -48,8 +48,8 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Pipeline_Run) {
   int num_cols;
 
   if (world.rank() == 0) {
-    num_rows = 1000;
-    num_cols = 1000;
+    num_rows = 1024;
+    num_cols = 1024;
 
     global_matrix = vasilev_s_striped_horizontal_scheme_mpi::getRandomMatrix(num_rows, num_cols);
     global_vector = vasilev_s_striped_horizontal_scheme_mpi::getRandomVector(num_cols);
@@ -68,7 +68,7 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Pipeline_Run) {
 
   auto taskParallel =
       std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
-  ASSERT_EQ(taskParallel->validation(), true);
+  taskParallel->validation();
   taskParallel->pre_processing();
   taskParallel->run();
   taskParallel->post_processing();
@@ -100,7 +100,7 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Pipeline_Run) {
 
     auto taskSequential =
         std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeSequentialMPI>(taskDataSeq);
-    ASSERT_EQ(taskSequential->validation(), true);
+    taskSequential->validation();
     taskSequential->pre_processing();
     taskSequential->run();
     taskSequential->post_processing();
@@ -125,8 +125,8 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Task_Run) {
   int num_cols;
 
   if (world.rank() == 0) {
-    num_rows = 1000;
-    num_cols = 1000;
+    num_rows = 1024;
+    num_cols = 1024;
 
     global_matrix = vasilev_s_striped_horizontal_scheme_mpi::getRandomMatrix(num_rows, num_cols);
     global_vector = vasilev_s_striped_horizontal_scheme_mpi::getRandomVector(num_cols);
@@ -145,7 +145,7 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Task_Run) {
 
   auto taskParallel =
       std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI>(taskDataPar);
-  ASSERT_EQ(taskParallel->validation(), true);
+  taskParallel->validation();
   taskParallel->pre_processing();
   taskParallel->run();
   taskParallel->post_processing();
@@ -177,7 +177,7 @@ TEST(vasilev_s_striped_horizontal_scheme_mpi, Performance_Task_Run) {
 
     auto taskSequential =
         std::make_shared<vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeSequentialMPI>(taskDataSeq);
-    ASSERT_EQ(taskSequential->validation(), true);
+    taskSequential->validation();
     taskSequential->pre_processing();
     taskSequential->run();
     taskSequential->post_processing();

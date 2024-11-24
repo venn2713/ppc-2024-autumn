@@ -13,7 +13,7 @@ void vasilev_s_striped_horizontal_scheme_mpi::calculate_distribution(int rows, i
                                                                      std::vector<int>& sizes,
                                                                      std::vector<int>& displs) {
   sizes.resize(num_proc, 0);
-  displs.resize(num_proc, -1);
+  displs.resize(num_proc, 0);
 
   if (num_proc > rows) {
     for (int i = 0; i < rows; ++i) {
@@ -39,7 +39,7 @@ void vasilev_s_striped_horizontal_scheme_mpi::calculate_distribution(int rows, i
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI::validation() {
   internal_order_test();
-  if (world.rank() != 0) return true;
+  if (world.rank() != 0) return false;
 
   bool valid_matrix = taskData->inputs[0] != nullptr && taskData->inputs_count[0] > 0;
   bool valid_vector = taskData->inputs[1] != nullptr && taskData->inputs_count[1] > 0;
@@ -47,7 +47,35 @@ bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI
   bool valid_result =
       valid_dimensions && taskData->outputs_count[0] == taskData->inputs_count[0] / taskData->inputs_count[1];
 
-  return valid_result;
+  if (valid_result) {
+    std::vector<int> valid_sizes;
+    std::vector<int> valid_displs;
+
+    size_t valid_cols = taskData->inputs_count[1];
+    size_t valid_rows = taskData->inputs_count[0] / taskData->inputs_count[1];
+    size_t valid_num_proc = world.size();
+
+    vasilev_s_striped_horizontal_scheme_mpi::calculate_distribution(valid_rows, valid_cols, valid_num_proc, valid_sizes,
+                                                                    valid_displs);
+
+    bool sizes_eq_num_proc = valid_sizes.size() == valid_num_proc;
+    bool displs_eq_num_proc = valid_displs.size() == valid_num_proc;
+
+    size_t i;
+    for (i = 0; i < valid_num_proc; ++i) {
+      if (i < valid_rows) {
+        if (valid_sizes[i] == static_cast<int>(valid_cols)) break;
+        if (valid_displs[i] == static_cast<int>(i * valid_cols)) break;
+      } else {
+        if (valid_sizes[i] == 0) break;
+        if (valid_displs[i] == 0) break;
+      }
+    }
+    bool flag = i == valid_num_proc - 1;
+
+    return sizes_eq_num_proc && displs_eq_num_proc && flag;
+  }
+  return false;
 }
 
 bool vasilev_s_striped_horizontal_scheme_mpi::StripedHorizontalSchemeParallelMPI::pre_processing() {
