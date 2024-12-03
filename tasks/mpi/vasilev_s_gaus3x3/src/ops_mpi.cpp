@@ -110,24 +110,10 @@ void vasilev_s_gaus3x3_mpi::calculateMatrixSizesDispls(const std::vector<std::ve
   }
 }
 
-inline double vasilev_s_gaus3x3_mpi::applyGaussianKernel(const std::vector<double>& neighborhood) {
-  double result = 0.0;
-  result += neighborhood[0] * 0.0625;
-  result += neighborhood[1] * 0.125;
-  result += neighborhood[2] * 0.0625;
-  result += neighborhood[3] * 0.125;
-  result += neighborhood[4] * 0.25;
-  result += neighborhood[5] * 0.125;
-  result += neighborhood[6] * 0.0625;
-  result += neighborhood[7] * 0.125;
-  result += neighborhood[8] * 0.0625;
-  return result;
-}
-
-std::vector<double> embedValuesWithZeros(const std::vector<double>& values, int rows, int cols) {
+std::vector<int> embedValuesWithZeros(const std::vector<int>& values, int rows, int cols) {
   int resultRows = rows - 2;
   int resultCols = cols - 2;
-  std::vector<double> result(rows * cols, 0);
+  std::vector<int> result(rows * cols, 0);
 
   for (int i = 0; i < resultRows; ++i) {
     int src_offset = i * resultCols;
@@ -161,7 +147,7 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3ParallelMPI::pre_processing() {
   internal_order_test();
 
   if (world.rank() == 0) {
-    auto* matrix_data = reinterpret_cast<double*>(taskData->inputs[0]);
+    auto* matrix_data = reinterpret_cast<int*>(taskData->inputs[0]);
     int matrix_size = taskData->inputs_count[0];
 
     rows = *reinterpret_cast<int*>(taskData->inputs[1]);
@@ -192,7 +178,7 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3ParallelMPI::run() {
 
   int local_vector_size = worker_sizes[world.rank()];
   int local_indices_size = indices_sizes[world.rank()];
-  std::vector<double> local_vector(local_vector_size);
+  std::vector<int> local_vector(local_vector_size);
   std::vector<std::pair<int, int>> local_indecies(local_indices_size);
 
   if (world.rank() == 0) {
@@ -205,18 +191,19 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3ParallelMPI::run() {
     boost::mpi::scatterv(world, local_indecies.data(), indices_sizes[world.rank()], 0);
   }
 
-  std::vector<double> local_result(indices_sizes[world.rank()]);
+  std::vector<int> local_result(indices_sizes[world.rank()]);
   for (int i = 0; i < indices_sizes[world.rank()]; i++) {
     auto [r, c] = local_indecies[i];
     int ind = (r - 1) * cols + (c - 1) - worker_displs[world.rank()];
-    std::vector<double> process_vector(9);
+    std::vector<int> process_vector(9);
     for (int j = 0; j < 3; j++) {
       process_vector[3 * j] = local_vector[ind + cols * j];
       process_vector[3 * j + 1] = local_vector[ind + cols * j + 1];
       process_vector[3 * j + 2] = local_vector[ind + cols * j + 2];
     }
+    int res = applyGaussianKernel(process_vector);
 
-    local_result[i] = applyGaussianKernel(process_vector);
+    local_result[i] = res;
   }
 
   if (world.rank() == 0) {
@@ -233,8 +220,8 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3ParallelMPI::post_processing() {
   internal_order_test();
 
   if (world.rank() == 0) {
-    auto* output_data = reinterpret_cast<double*>(taskData->outputs[0]);
-    std::vector<double> result = embedValuesWithZeros(result_vector, rows, cols);
+    auto* output_data = reinterpret_cast<int*>(taskData->outputs[0]);
+    std::vector<int> result = embedValuesWithZeros(result_vector, rows, cols);
     std::copy(result.begin(), result.end(), output_data);
   }
 
@@ -259,7 +246,7 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::validation() {
 
 bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::pre_processing() {
   internal_order_test();
-  auto* matrix_data = reinterpret_cast<double*>(taskData->inputs[0]);
+  auto* matrix_data = reinterpret_cast<int*>(taskData->inputs[0]);
   int matrix_size = taskData->inputs_count[0];
 
   rows = *reinterpret_cast<int*>(taskData->inputs[1]);
@@ -280,7 +267,7 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::run() {
     for (int col = 1; col < cols - 1; ++col) {
       int baseIndex = row * cols + col;
 
-      double result = 0.0;
+      double result = 0;                                // Тут ошибка
       result += matrix[baseIndex - cols - 1] * 0.0625;  // Top-left
       result += matrix[baseIndex - cols] * 0.125;       // Top-center
       result += matrix[baseIndex - cols + 1] * 0.0625;  // Top-right
@@ -290,8 +277,8 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::run() {
       result += matrix[baseIndex + cols - 1] * 0.0625;  // Bottom-left
       result += matrix[baseIndex + cols] * 0.125;       // Bottom-center
       result += matrix[baseIndex + cols + 1] * 0.0625;  // Bottom-right
-
-      result_vector[baseIndex] = result;
+      int finalResult = static_cast<int>(std::round(result));
+      result_vector[baseIndex] = std::clamp(finalResult, 0, 255);
     }
   }
 
@@ -301,8 +288,7 @@ bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::run() {
 bool vasilev_s_gaus3x3_mpi::Gaus3x3SequentialMPI::post_processing() {
   internal_order_test();
 
-  auto* output_data = reinterpret_cast<double*>(taskData->outputs[0]);
-  std::cout << std::endl;
+  auto* output_data = reinterpret_cast<int*>(taskData->outputs[0]);
   std::copy(result_vector.begin(), result_vector.end(), output_data);
 
   return true;

@@ -9,11 +9,11 @@
 
 namespace vasilev_s_gaus3x3_mpi {
 
-std::vector<double> getRandomMatrix(int rows, int cols) {
+std::vector<int> getRandomMatrix(int rows, int cols) {
   std::random_device dev;
   std::mt19937 gen(dev());
-  std::uniform_real_distribution<double> dist(0.0, 1000.0);
-  std::vector<double> matrix(rows * cols);
+  std::uniform_int_distribution<int> dist(0, 255);
+  std::vector<int> matrix(rows * cols);
   for (int i = 0; i < rows * cols; i++) {
     matrix[i] = dist(gen);
   }
@@ -23,8 +23,8 @@ std::vector<double> getRandomMatrix(int rows, int cols) {
 void run_test(int num_rows, int num_cols) {
   boost::mpi::communicator world;
 
-  std::vector<double> global_matrix;
-  std::vector<double> global_result;
+  std::vector<int> global_matrix;
+  std::vector<int> global_result;
 
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
@@ -53,7 +53,7 @@ void run_test(int num_rows, int num_cols) {
   taskParallel->post_processing();
 
   if (world.rank() == 0) {
-    std::vector<double> seq_result(global_result.size(), 0);
+    std::vector<int> seq_result(global_result.size(), 0);
 
     auto taskDataSeq = std::make_shared<ppc::core::TaskData>();
     taskDataSeq->inputs.emplace_back(reinterpret_cast<uint8_t*>(global_matrix.data()));
@@ -82,8 +82,8 @@ void run_test(int num_rows, int num_cols) {
 void validation_test(int num_rows, int num_cols) {
   boost::mpi::communicator world;
 
-  std::vector<double> global_matrix;
-  std::vector<double> global_result;
+  std::vector<int> global_matrix;
+  std::vector<int> global_result;
 
   std::shared_ptr<ppc::core::TaskData> taskDataPar = std::make_shared<ppc::core::TaskData>();
 
